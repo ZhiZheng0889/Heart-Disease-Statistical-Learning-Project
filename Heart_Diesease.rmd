@@ -1,0 +1,297 @@
+---
+title: "Project"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+```{r}
+#Packages
+library(car)
+library(caret)
+library(class)
+library(corrplot)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(h2o)
+library(kknn)
+library(MASS)
+library(plyr)
+library(pROC)
+library(ROCR)
+library(rpart.plot)
+library(rpart)
+library(randomForest)
+
+```
+
+
+```{r}
+#Importing the data
+heart <- read.csv("C:/Users/zhizh/Desktop/Statistical Learning/Project/heart.csv")
+
+heart$sex <- as.factor(heart$sex)
+heart$cp <- as.factor(heart$cp)
+heart$fbs <- as.factor(heart$fbs)
+heart$restecg <- as.factor(heart$restecg)
+heart$exang <- as.factor(heart$exang)
+heart$slope <- as.factor(heart$slope)
+heart$ca <- as.factor(heart$ca)
+heart$target <- as.factor(heart$target)
+heart$thal <- c(scale(heart$thal))
+
+str(heart)
+```
+
+```{r}
+#EDA
+
+#Check if there are any missing values 
+which(is.na(heart$age), arr.ind=TRUE)
+which(is.na(heart$sex), arr.ind=TRUE)
+which(is.na(heart$cp), arr.ind=TRUE)
+which(is.na(heart$trestbps), arr.ind=TRUE)
+which(is.na(heart$chol), arr.ind=TRUE)
+which(is.na(heart$fbs), arr.ind=TRUE)
+which(is.na(heart$restecg), arr.ind=TRUE)
+which(is.na(heart$thalach), arr.ind=TRUE)
+which(is.na(heart$exang), arr.ind=TRUE)
+which(is.na(heart$oldpeak), arr.ind=TRUE)
+which(is.na(heart$slope), arr.ind=TRUE)
+which(is.na(heart$ca), arr.ind=TRUE)
+which(is.na(heart$thal), arr.ind=TRUE)
+which(is.na(heart$target), arr.ind=TRUE)
+which(is.na(heart$age), arr.ind=TRUE)
+which(is.na(heart$age), arr.ind=TRUE)
+
+```
+
+```{r}
+#Splitting data into train and test dataset
+set.seed(666)
+intrain <-createDataPartition(y=heart$target, p=0.7, list=FALSE)
+train_set <- heart[intrain, ]
+test_set <- heart[-intrain, ]
+
+```
+
+```{r}
+#target
+ggplot(heart, aes(factor(target), fill = factor(target))) +
+  geom_bar() +
+  theme_classic() +
+  labs(x = "Target", y = "Observations") +
+  ggtitle("Presence of Heart Disease") +
+  scale_fill_discrete(name = "Heart Disease", labels = c("No", "Yes"))
+
+#cp
+ggplot(heart, aes(factor(cp), fill = factor(cp))) +
+  geom_bar() +
+  theme_classic() +
+  labs(x = "Chest Pain", y = "Observations") +
+  ggtitle("Bar graph of Chest Pain variable") +
+  scale_fill_discrete(name = "Chest Pain", labels = c("Asymptomatic", "Typical Angina","Atypical Angina","Non-anginal Pain"))
+
+#sex
+ggplot(heart, aes(factor(sex), fill = factor(sex))) +
+  geom_bar() +
+  theme_classic() +
+  labs(x = "Sex", y = "Count") +
+  ggtitle("Bar graph of Sex") +
+  scale_fill_discrete(name = "Sex", labels = c("Female","Male"))
+
+#fbs
+ggplot(heart, aes(factor(fbs), fill = factor(fbs))) +
+  geom_bar() +
+  theme_classic() +
+  labs(x = "fbs", y = "Count") +
+  ggtitle("Bar graph of fasting blood sugar") +
+  scale_fill_discrete(name = "Fbs > 120 mg/dl", labels = c("No","Yes"))
+
+
+```
+
+```{r}
+#slope
+ggplot(heart, aes(factor(restecg), fill = factor(restecg))) +
+  geom_bar() +
+  theme_classic() +
+  labs(x = "slope", y = "Count") +
+  ggtitle("The slope of the peak exercise ST segment") +
+  scale_fill_discrete(name = "Resting elec", labels = c("Up","Flat","Down"))
+
+#restecg
+ggplot(heart, aes(factor(restecg), fill = factor(restecg))) +
+  geom_bar() +
+  theme_classic() +
+  labs(x = "restecg", y = "Count") +
+  ggtitle("Bar graph of resting electrocardiographic results") +
+  scale_fill_discrete(name = "Resting elec", labels = c("Normal","Abnormal","Probable or definite"))
+
+#ca
+ggplot(heart, aes(factor(ca), fill = factor(ca))) +
+  geom_bar() +
+  theme_classic() +
+  labs(x = "ca ", y = "Count") +
+  ggtitle("Number of major vessels (0-3) colored by fluoroscopy") +
+  scale_fill_discrete(name = "Vessels Colors", labels = c("Color 0","Color 1","Color 2", "Color 3", "Unknown"))
+
+#thal
+ggplot(heart, aes(factor(thal), fill = factor(thal))) +
+  geom_bar() +
+  theme_classic() +
+  labs(x = "thal", y = "Count") +
+  ggtitle("Thal") +
+  scale_fill_discrete(name = "thal", labels = c("Unknown", "Normal", "Fixable Defect", "Reversable Defect"))
+
+#exang
+ggplot(heart, aes(factor(exang), fill = factor(exang))) +
+  geom_bar() +
+  theme_classic() +
+  labs(x = "exang ", y = "Count") +
+  ggtitle("Exercise-induced angina") +
+  scale_fill_discrete(name = "(1 = yes; 0 = no)", labels = c("No", "Yes"))
+
+
+```
+
+
+```{r}
+#age
+plot1 <- ggplot(heart, aes(age))+geom_histogram() 
+
+#trestbps
+plot2 <- ggplot(heart, aes(trestbps))+geom_histogram()
+
+#chol
+plot3 <- ggplot(heart, aes(chol))+geom_histogram()
+
+#thalach
+plot4 <-ggplot(heart, aes(thalach))+geom_histogram()
+
+#oldpeak
+plot5 <- ggplot(heart, aes(oldpeak))+
+  geom_histogram(aes(y =..density..))+
+  labs(x="ST depression Oldpeak",y="") 
+            
+
+
+grid.arrange(plot1, plot2, plot3, plot4, plot5, ncol=2)
+```
+
+```{r}
+#Sex with Target
+sex1 = factor(heart$sex,labels=c("Female","Male"),levels=0:1)
+target1 = factor(heart$target,labels=c("Absence","Presence"),levels=0:1)
+
+
+ggplot(heart, aes(x = sex1, fill = target1))+geom_bar(position = "fill")+
+      theme(plot.background = element_rect(fill = "yellow"))+
+      scale_fill_discrete(name = "Heart Disease")+
+      labs(x="Sex",y="density")
+
+#Exang with Target
+exang1 = factor(heart$sex,labels=c("No","Yes"),levels=0:1)
+
+ggplot(heart, aes(x = exang1, fill = target1))+geom_bar(position = "fill")+
+      theme(plot.background = element_rect(fill = "yellow"))+
+      scale_fill_discrete(name = "Heart Disease")+
+      labs(x="Exercise induced angina",y="density")
+
+#Age with Target
+ggplot(heart, aes(age, fill = factor(target)))+
+  geom_histogram(bins = 20)+
+  theme_classic()+
+  theme(plot.background = element_rect(fill = "yellow"))+
+  labs(title = "Histogram of age variable with target", x = "age", y = "count")+
+  scale_fill_discrete(name = "Target", labels = c("Absence","Presence"))
+
+```
+
+
+```{r}
+pairs(heart)
+```
+
+```{r}
+#Logistic Regression Stepwise Modeling
+
+log.model <- glm(target~.,family="binomial",data = train_set)
+summary(log.model)
+
+step.model <- stepAIC(log.model)
+summary(step.model)
+
+```
+```{r}
+# Logistic Regressing the best fit model base on the AIC score of stepAIC
+
+glm2 <- glm(target ~ age + sex + cp + trestbps + chol + thalach + exang + 
+    oldpeak + slope + ca + thal, family = "binomial", data = train_set)
+summary(glm2)
+
+exp(coef(glm2))
+
+vif(glm2)
+
+glm.probs <- predict(glm2,newdata = data.frame(test_set),type = "response")
+glm.pred <- ifelse( glm.probs > 0.827, "1", "0")
+glm.roc <- roc(test_set$target,glm.probs)
+
+plot(glm.roc, print.auc=TRUE, auc.polygon=TRUE, grid=c(0.1, 0.2), grid.col=c("yellow", "red"), max.auc.polygon=TRUE, auc.polygon.col="skyblue", print.thres=TRUE, main='ROC Curve of logistic regression')
+
+table(test_set[,"target"], glm.pred, dnn=c("actual value","predicted value"))
+
+#Accuracy = (143+106)/(143+6+51+106) = .81373 = 81.373% accuracy
+```
+
+```{r}
+#Random Forest 
+rtree <- randomForest(target ~ age + sex + cp + trestbps + chol + thalach + exang + 
+    oldpeak + slope + ca + thal, data=test_set, mtry=6, importance = TRUE, ntree=12)
+
+rtree
+
+yhat_rf_heart <- as.data.frame(predict(rtree, data = test_set, type = "prob"))
+
+
+rtree.roc <- roc(test_set$target,yhat_rf_heart[,1])
+
+
+plot(rtree.roc, print.auc=TRUE, auc.polygon=TRUE, grid=c(0.1, 0.2), grid.col=c("yellow", "red"), max.auc.polygon=TRUE, auc.polygon.col="skyblue", print.thres=TRUE, main='ROC Curve of RandomForest')
+
+predtree<-ifelse(yhat_rf_heart[, 2]>=0.6,1,0)
+table(test_set$target, predtree, dnn=c("actual value","predicted value"))
+
+#Accuracy = (129+135)/(129+20+22+135) = 0.86275 = 86.275% accuracy
+```
+
+```{r}
+#KNN K Nearest Neighbor
+#k=13,optimal
+heart_knn <- kknn(target~.,train_set,test_set,k=13,distance=2)
+knn_roc <- roc(test_set$target,heart_knn$prob[,2])
+
+plot(knn_roc, print.auc=TRUE, auc.polygon=TRUE, grid=c(0.1, 0.2),grid.col=c("green", "red"), max.auc.polygon=TRUE,auc.polygon.col="skyblue", print.thres=TRUE,main='ROC Curve of KNN')
+
+pre_knn =ifelse(heart_knn$prob[,2]>0.699,1,0)
+table(test_set$target,pre_knn,dnn=c("actual value","predicted value"))
+
+# Accuracy = (146+129)/(146+3+28+129) = .89869 =89.869% accuracy
+```
+
+```{r}
+#Visualizing AUC result comparison
+
+auc1 = c(0.940, 0.938, 0.987)
+names = c("Logistic Stepwise","Random Forest","KNN")
+barplot(auc1,ylim=c(0,1),names.arg = names,border="white",col=c("lightgreen","yellow2","orange2"),main="AUC of three algorithms")
+
+#Visualizing accuracy result comparison
+
+acc1 = c(0.81373, 0.86275, 0.89869)
+names = c("Logistic Stepwise","Random Forest","KNN")
+barplot(acc1,ylim=c(0,1),names.arg = names,border="white",col=c("lightgreen","yellow2","orange2"),main="Accuracy of three algorithms")
+
+```
+
